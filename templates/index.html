@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+* {box-sizing: border-box;}
+
+.img-comp-container {
+  position: relative;
+  height: 1024px; /* Set height to accommodate larger images */
+}
+
+.img-comp-img {
+  position: absolute;
+  width: 1024px;
+  height: auto;
+  overflow: hidden;
+}
+
+.img-comp-img img {
+  display: block;
+  vertical-align: middle;
+  width: 1024px; /* Maintain aspect ratio */
+  height: 1024px; /* Set height to 1024 pixels */
+}
+
+.img-comp-slider {
+  position: absolute;
+  z-index: 9;
+  cursor: ew-resize;
+  /* Set the appearance of the slider: */
+  width: 50px; /* Increase slider width */
+  height: 50px; /* Increase slider height */
+  background-color: #2196F3;
+  opacity: 0.7;
+  border-radius: 50%;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column; /* Change to column for vertical alignment */
+  position: absolute; /* Position buttons absolutely */
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Adjust for centering */
+  right: 10px; /* Position to the right of the image */
+}
+</style>
+<script>
+function initComparisons() {
+  var x, i;
+  /* Find all elements with an "overlay" class: */
+  x = document.getElementsByClassName("img-comp-overlay");
+  for (i = 0; i < x.length; i++) {
+    /* Once for each "overlay" element: */
+    compareImages(x[i]);
+  }
+  function compareImages(img) {
+    var slider, clicked = 0, w, h;
+    /* Get the width and height of the img element */
+    w = img.offsetWidth;
+    h = img.offsetHeight;
+    /* Set the width of the img element to 50%: */
+    img.style.width = (w / 2) + "px";
+    /* Create slider: */
+    slider = document.createElement("DIV");
+    slider.setAttribute("class", "img-comp-slider");
+    /* Insert slider */
+    img.parentElement.insertBefore(slider, img);
+    /* Position the slider in the middle: */
+    slider.style.top = (h / 2) - (slider.offsetHeight / 2) + "px";
+    slider.style.left = (w / 2) - (slider.offsetWidth / 2) + "px";
+    /* Execute a function when the mouse button is pressed: */
+    slider.addEventListener("mousedown", slideReady);
+    /* And another function when the mouse button is released: */
+    window.addEventListener("mouseup", slideFinish);
+    /* Or touched (for touch screens): */
+    slider.addEventListener("touchstart", slideReady);
+    /* And released (for touch screens): */
+    window.addEventListener("touchend", slideFinish);
+    function slideReady(e) {
+      /* Prevent any other actions that may occur when moving over the image: */
+      e.preventDefault();
+      /* The slider is now clicked and ready to move: */
+      clicked = 1;
+      /* Execute a function when the slider is moved: */
+      window.addEventListener("mousemove", slideMove);
+      window.addEventListener("touchmove", slideMove);
+    }
+    function slideFinish() {
+      /* The slider is no longer clicked: */
+      clicked = 0;
+    }
+    function slideMove(e) {
+      var pos;
+      /* If the slider is no longer clicked, exit this function: */
+      if (clicked == 0) return false;
+      /* Get the cursor's x position: */
+      pos = getCursorPos(e);
+      /* Prevent the slider from being positioned outside the image: */
+      if (pos < 0) pos = 0;
+      if (pos > w) pos = w;
+      /* Execute a function that will resize the overlay image according to the cursor: */
+      slide(pos);
+    }
+    function getCursorPos(e) {
+      var a, x = 0;
+      e = (e.changedTouches) ? e.changedTouches[0] : e;
+      /* Get the x positions of the image: */
+      a = img.getBoundingClientRect();
+      /* Calculate the cursor's x coordinate, relative to the image: */
+      x = e.pageX - a.left;
+      /* Consider any page scrolling: */
+      x = x - window.pageXOffset;
+      return x;
+    }
+    function slide(x) {
+      /* Resize the image: */
+      img.style.width = x + "px";
+      /* Position the slider: */
+      slider.style.left = img.offsetWidth - (slider.offsetWidth / 2) + "px";
+    }
+  }
+}
+
+// Function to hide the form after loading images
+function hideForm() {
+  document.getElementById('imageForm').style.display = 'none';
+}
+</script>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="mt-4">Compare Two Images</h1>
+
+    <form method="POST" class="mb-4" id="imageForm" onsubmit="hideForm()">
+        <div class="form-row align-items-end">
+            <div class="col">
+                <label for="folder1">Folder 1 Path:</label>
+                <input type="text" class="form-control" id="folder1" name="folder1" required>
+            </div>
+            <div class="col">
+                <label for="keyword1">Keyword for Folder 1:</label>
+                <input type="text" class="form-control" id="keyword1" name="keyword1" required>
+            </div>
+            <div class="col">
+                <label for="folder2">Folder 2 Path:</label>
+                <input type="text" class="form-control" id="folder2" name="folder2" required>
+            </div>
+            <div class="col">
+                <label for="keyword2">Keyword for Folder 2:</label>
+                <input type="text" class="form-control" id="keyword2" name="keyword2" required>
+            </div>
+            <div class="col-auto">
+                <input type="submit" class="btn btn-primary" value="Load Images">
+            </div>
+        </div>
+    </form>
+
+    <!-- <p>Click and slide the blue slider to compare two images:</p> -->
+
+    <div class="img-comp-container">
+        <div class="img-comp-img">
+            {% if img1 %}
+                <img src="{{ url_for('serve_image', filename=img1) }}" width="auto" height="auto">
+            {% else %}
+                <p>No image found for Folder 1.</p>
+            {% endif %}
+        </div>
+        <div class="img-comp-img img-comp-overlay">
+            {% if img2 %}
+                <img src="{{ url_for('serve_image', filename=img2) }}" width="auto" height="auto">
+            {% else %}
+                <p>No image found for Folder 2.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-4 button-container">
+        <form method="POST" action="/" class="mb-2">
+            <input type="hidden" name="folder1" value="{{ request.form['folder1'] }}">
+            <input type="hidden" name="folder2" value="{{ request.form['folder2'] }}">
+            <input type="hidden" name="keyword1" value="{{ request.form['keyword1'] }}">
+            <input type="hidden" name="keyword2" value="{{ request.form['keyword2'] }}">
+            <input type="hidden" name="current_index" value="{{ current_index - 1 }}">
+            <button type="submit" class="btn btn-secondary" {% if current_index <= 0 %}disabled{% endif %}>Previous</button>
+        </form>
+        <form method="POST" action="/" class="d-inline" style="margin-left: auto;">
+            <input type="hidden" name="folder1" value="{{ request.form['folder1'] }}">
+            <input type="hidden" name="folder2" value="{{ request.form['folder2'] }}">
+            <input type="hidden" name="keyword1" value="{{ request.form['keyword1'] }}">
+            <input type="hidden" name="keyword2" value="{{ request.form['keyword2'] }}">
+            <input type="hidden" name="current_index" value="{{ current_index + 1 }}">
+            <button type="submit" class="btn btn-secondary" {% if current_index >= total_images - 1 %}disabled{% endif %}>Next</button>
+        </form>
+    </div>
+</div>
+
+<script>
+/* Execute a function that will execute an image compare function for each element with the img-comp-overlay class: */
+initComparisons();
+</script>
+
+</body>
+</html>
